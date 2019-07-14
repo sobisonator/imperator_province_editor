@@ -143,12 +143,17 @@ canvas.create_image(0,0,image=img,anchor="nw")
 canvas.config(scrollregion=canvas.bbox(ALL))
 
 #function to be called when mouse is clicked
-def printcolour(event):
+def getprovince(event):
     #outputting x and y coords to console
     cx, cy = event2canvas(event, canvas)
-    print ("(%d, %d) / (%d, %d)" % (event.x,event.y,cx,cy))
-    print(px[cx,cy])
+    print ("click at (%d, %d) / (%d, %d)" % (event.x,event.y,cx,cy))
+    colour = px[cx,cy]
+    params = colour
+    # Look in definition first to get the province ID from RGB
+    search_query = "SELECT Province_ID FROM definition WHERE R=? AND G=? AND B=?"
+    db.query(search_query,params)
+    print("province ID is " + str(db.db_fetchone()[0]))
 #mouseclick event
-canvas.bind("<ButtonPress-1>",printcolour)
+canvas.bind("<ButtonPress-1>",getprovince)
 
 root.mainloop()
