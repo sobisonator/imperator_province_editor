@@ -1,70 +1,36 @@
 import sqlite3, numpy, wx
-from PIL import Image, ImageTk
 from tkinter import *
+from PIL import Image, ImageTk
 from tkinter.filedialog import askopenfilename
-
-event2canvas = lambda e, c: (c.canvasx(e.x), c.canvasy(e.y))
-
-if __name__ == "__main__":
-    root = Tk()
-
-    #setting up a tkinter canvas with scrollbars
-    frame = Frame(root, bd=2, relief=SUNKEN)
-    frame.grid_rowconfigure(0, weight=1)
-    frame.grid_columnconfigure(0, weight=1)
-    xscroll = Scrollbar(frame, orient=HORIZONTAL)
-    xscroll.grid(row=1, column=0, sticky=E+W)
-    yscroll = Scrollbar(frame)
-    yscroll.grid(row=0, column=1, sticky=N+S)
-    canvas = Canvas(frame, bd=0, xscrollcommand=xscroll.set, yscrollcommand=yscroll.set)
-    canvas.grid(row=0, column=0, sticky=N+S+E+W)
-    xscroll.config(command=canvas.xview)
-    yscroll.config(command=canvas.yview)
-    frame.pack(fill=BOTH,expand=1)
-
-    #adding the image
-    File = askopenfilename(parent=root, initialdir="M:/",title='Choose an image.')
-    print("opening %s" % File)
-    img = ImageTk.PhotoImage(file=File)
-    canvas.create_image(0,0,image=img,anchor="nw")
-    canvas.config(scrollregion=canvas.bbox(ALL))
-
-    #function to be called when mouse is clicked
-    def printcoords(event):
-        #outputting x and y coords to console
-        cx, cy = event2canvas(event, canvas)
-        print ("(%d, %d) / (%d, %d)" % (event.x,event.y,cx,cy))
-    #mouseclick event
-    canvas.bind("<ButtonPress-1>",printcoords)
-    canvas.bind("<ButtonRelease-1>",printcoords)
-
-    root.mainloop()
 
 im_land = Image.open('land_input.bmp','r')
 im_sea = Image.open('sea_input.bmp','r')
 
-# Land provinces
-print("Getting land province pixel colour data, please wait...")
-all_pixvals_land = list(im_land.getdata())
+land_colours = im_land.getcolors(maxcolors=5000)
 
-# Now sort into unique values only, ignoring white
-land_province_values = numpy.unique(all_pixvals_land, axis=0)
-land_province_values = numpy.delete(land_province_values,-1,axis=0)
-print(str(len(land_province_values)) + " land provinces found.")
-print(land_province_values)
+land_provinces = []
+
+for colour in land_colours:
+    land_provinces.append(colour[1])
+# Ignore white
+land_provinces.remove((255,255,255))
 
 # Sea provinces
-print("Getting sea province pixel colour data, please wait...")
-all_pixvals_sea = list(im_sea.getdata())
 
-# Now sort into unique values only, ignoring white
-sea_province_values = numpy.unique(all_pixvals_sea, axis=0)
-sea_province_values = numpy.delete(sea_province_values,-1,axis=0)
-print(str(len(sea_province_values)) + " sea provinces found.")
-print(sea_province_values)
+sea_colours = im_sea.getcolors(maxcolors=5000)
 
-total_provinces = len(land_province_values) + len(sea_province_values)
-print(str(total_provinces) + " provinces found.")
+sea_provinces = []
+
+for colour in sea_colours:
+    sea_provinces.append(colour[1])
+# Ignore white
+sea_provinces.remove((255,255,255))
+
+total_provinces = len(sea_provinces) + len(land_provinces)
+
+print(str(len(sea_provinces)) + " sea provinces found and " +
+      str(len(land_provinces)) + " land provinces found.")
+print("Total provinces = " + str(total_provinces))
 
 # Database connection class
 class database_connection(object):
