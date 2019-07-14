@@ -1,7 +1,8 @@
-import sqlite3, numpy, wx
+import sqlite3
 from tkinter import *
 from PIL import Image, ImageTk
-from tkinter.filedialog import askopenfilename
+
+event2canvas = lambda e, c: (c.canvasx(e.x), c.canvasy(e.y))
 
 im_land = Image.open('land_input.bmp','r')
 im_sea = Image.open('sea_input.bmp','r')
@@ -72,7 +73,7 @@ class database_connection(object):
         i = 1
         while i < total_provinces:
             try:
-                for province in land_province_values:
+                for province in land_provinces:
                     R = str(province[0])
                     G = str(province[1])
                     B = str(province[2])
@@ -81,7 +82,7 @@ class database_connection(object):
                     self.query(query, params)
                     print("Created definition for province " + str(i))
                     i = i+1
-                for province in sea_province_values:
+                for province in sea_provinces:
                     R = str(province[0])
                     G = str(province[1])
                     B = str(province[2])
@@ -98,13 +99,13 @@ class database_connection(object):
         i = 1
         while i < total_provinces:
             try:
-                for province in land_province_values:
+                for province in land_provinces:
                     params = (str(i), "roman", "roman_pantheon", "cloth", "1", "1", "1", "1", "40", "0", "landprov"+str(i), "noregion")
                     query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Civilization, Barbarian, NameRef, AraRef) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
                     self.query(query, params)
                     print("Created default province setup for land province " + str(i))
                     i = i + 1
-                for province in sea_province_values:
+                for province in sea_provinces:
                     params = (str(i), "", "", "", "0", "0", "0", "0", "0", "0", "seaprov"+str(i), "")
                     query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Civilization, Barbarian, NameRef, AraRef) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
                     self.query(query, params)
@@ -117,3 +118,37 @@ class database_connection(object):
 db = database_connection()
 db.fill_definition()
 db.default_setup()
+
+root = Tk()
+
+#setting up a tkinter canvas with scrollbars
+frame = Frame(root, bd=2, relief=SUNKEN)
+frame.grid_rowconfigure(0, weight=1)
+frame.grid_columnconfigure(0, weight=1)
+xscroll = Scrollbar(frame, orient=HORIZONTAL)
+xscroll.grid(row=1, column=0, sticky=E+W)
+yscroll = Scrollbar(frame)
+yscroll.grid(row=0, column=1, sticky=N+S)
+canvas = Canvas(frame, bd=0, xscrollcommand=xscroll.set, yscrollcommand=yscroll.set)
+canvas.grid(row=0, column=0, sticky=N+S+E+W)
+xscroll.config(command=canvas.xview)
+yscroll.config(command=canvas.yview)
+frame.pack(fill=BOTH,expand=1)
+
+#adding the image
+img = ImageTk.PhotoImage(file='main_input.bmp')
+pxdata = Image.open('main_input.bmp','r')
+px = pxdata.load()
+canvas.create_image(0,0,image=img,anchor="nw")
+canvas.config(scrollregion=canvas.bbox(ALL))
+
+#function to be called when mouse is clicked
+def printcolour(event):
+    #outputting x and y coords to console
+    cx, cy = event2canvas(event, canvas)
+    print ("(%d, %d) / (%d, %d)" % (event.x,event.y,cx,cy))
+    print(px[cx,cy])
+#mouseclick event
+canvas.bind("<ButtonPress-1>",printcolour)
+
+root.mainloop()
