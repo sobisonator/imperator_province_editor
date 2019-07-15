@@ -135,14 +135,42 @@ canvas = Canvas(frame, bd=0, xscrollcommand=xscroll.set, yscrollcommand=yscroll.
 canvas.grid(row=0, column=0, sticky=N+S+E+W)
 xscroll.config(command=canvas.xview)
 yscroll.config(command=canvas.yview)
+
 editorframe = Frame(frame, bd=2, relief=SUNKEN, padx=110)
 editorframe.grid(row=0, column=2)
-b = Button(editorframe, text="B")
-b.grid(row=0, column=0)
+
+def makeentry(parent, caption, rownum):
+    Label(parent, text=caption, pady=10).grid(row = rownum, column = 0)
+    entry = Entry(parent, width=16, font=("Arial 18"))
+    entry.grid(row = rownum, column = 1)
+    return entry
+
+fields = [
+    "ProvID",
+    "Culture",
+    "Religion",
+    "TradeGoods",
+    "Citizens",
+    "Freedmen",
+    "Slaves",
+    "Tribesmen",
+    "Civilization",
+    "Barbarian",
+    "AraRef",
+]
+
 frame.pack(fill=BOTH,expand=1)
 
+def create_fields():
+    i = 1
+    for field in fields:
+        entry = makeentry(editorframe, field, i)
+        i = i + 1
+
+create_fields()
+
 #adding the image
-img = ImageTk.PhotoImage(file='main_input.bmp', size=)
+img = ImageTk.PhotoImage(file='main_input.bmp', size=(1024,768))
 pxdata = Image.open('main_input.bmp','r')
 px = pxdata.load()
 canvas.create_image(0,0,image=img,anchor="nw")
