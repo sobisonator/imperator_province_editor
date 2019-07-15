@@ -139,9 +139,9 @@ yscroll.config(command=canvas.yview)
 editorframe = Frame(frame, bd=2, relief=SUNKEN, padx=110)
 editorframe.grid(row=0, column=2)
 
-def makeentry(parent, caption, rownum):
+def makeentry(parent, caption, rownum, **options):
     Label(parent, text=caption, pady=10).grid(row = rownum, column = 0)
-    entry = Entry(parent, width=16, font=("Arial 18"))
+    entry = Entry(parent, width=16, font=("Arial 18"), **options)
     entry.grid(row = rownum, column = 1)
     return entry
 
@@ -156,18 +156,25 @@ fields = [
     "Tribesmen",
     "Civilization",
     "Barbarian",
-    "AraRef",
+    "NameRef",
+    "AraRef"
 ]
 
 frame.pack(fill=BOTH,expand=1)
 
 def create_fields():
     i = 1
+    list_of_entries = []
     for field in fields:
-        entry = makeentry(editorframe, field, i)
+        setting = "normal"
+        if field == "ProvID":
+            setting = "readonly"
+        entry = makeentry(editorframe, field, i, state=setting)
+        list_of_entries.append(entry)
         i = i + 1
+    return list_of_entries
 
-create_fields()
+list_of_entries = create_fields()
 
 #adding the image
 img = ImageTk.PhotoImage(file='main_input.bmp', size=(1024,768))
@@ -176,8 +183,11 @@ px = pxdata.load()
 canvas.create_image(0,0,image=img,anchor="nw")
 canvas.config(scrollregion=canvas.bbox(ALL))
 
+prevprovince = None
+
 #function to be called when mouse is clicked
 def getprovince(event):
+    global prevprovince
     #outputting x and y coords to console
     cx, cy = event2canvas(event, canvas)
     print ("click at (%d, %d) / (%d, %d)" % (event.x,event.y,cx,cy))
@@ -187,12 +197,45 @@ def getprovince(event):
     search_query = "SELECT Province_ID FROM definition WHERE R=? AND G=? AND B=?;"
     db.query(search_query,params)
     province = str(db.db_fetchone()[0])
-    print("province ID is " + province)
-    province_data_query = "SELECT * FROM province_setup WHERE ProvID = " + province + ";"
-    db.query(province_data_query, "")
-    province_data = db.db_fetchone()
-    print(province_data)
+    # Do not repeat all this if the province is already selected
+    if province != prevprovince:
+        prevprovince = province
+        print("province ID is " + province)
+        province_data_query = "SELECT * FROM province_setup WHERE ProvID = " + province + ";"
+        db.query(province_data_query, "")
+        province_data = db.db_fetchone()
+        for index, entry in enumerate(list_of_entries):
+            entry.config(state="normal")
+            entry.delete(0,999)
+            entry.insert(0,province_data[index])
+            if index == 0:
+                entry.config(state="readonly")
+        print(province_data)
+
+mousewheel = 0
+
+def _on_mousewheel_dn(event):
+    global mousewheel
+    global scan_anchor
+    mousewheel = 1
+    print(event)
+    canvas.scan_mark(event.x, event.y)
+
+def _on_mousewheel_up(event):
+    global mousewheel
+    mousewheel = 0
+    print(event)
+
+def scan(event):
+    global mousewheel
+    if mousewheel == 1:
+        print(event)
+        canvas.scan_dragto(event.x,event.y)
+    
 #mouseclick event
+canvas.bind_all("<ButtonPress-2>", _on_mousewheel_dn)
+canvas.bind_all("<ButtonRelease-2>", _on_mousewheel_up)
+canvas.bind_all("<Motion>",scan)
 canvas.bind("<ButtonPress-1>",getprovince)
 
 # Replace spaces with semicolons for input to definition.csv province names
