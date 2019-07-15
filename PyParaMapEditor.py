@@ -1,6 +1,8 @@
-import sqlite3
+import sqlite3, ctypes
 from tkinter import *
 from PIL import Image, ImageTk
+user32 = ctypes.windll.user32
+screensize = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 
 event2canvas = lambda e, c: (c.canvasx(e.x), c.canvasy(e.y))
 
@@ -133,10 +135,14 @@ canvas = Canvas(frame, bd=0, xscrollcommand=xscroll.set, yscrollcommand=yscroll.
 canvas.grid(row=0, column=0, sticky=N+S+E+W)
 xscroll.config(command=canvas.xview)
 yscroll.config(command=canvas.yview)
+editorframe = Frame(frame, bd=2, relief=SUNKEN, padx=110)
+editorframe.grid(row=0, column=2)
+b = Button(editorframe, text="B")
+b.grid(row=0, column=0)
 frame.pack(fill=BOTH,expand=1)
 
 #adding the image
-img = ImageTk.PhotoImage(file='main_input.bmp')
+img = ImageTk.PhotoImage(file='main_input.bmp', size=)
 pxdata = Image.open('main_input.bmp','r')
 px = pxdata.load()
 canvas.create_image(0,0,image=img,anchor="nw")
