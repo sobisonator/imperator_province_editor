@@ -162,6 +162,15 @@ fields = [
 
 frame.pack(fill=BOTH,expand=1)
 
+def submit_entry(event):
+    try:
+        if not str(event).isdigit():
+            submission = event.widget.get()
+            print("Submitting " + submission)
+            event.widget.config({"background":"lime"})
+    except:
+        print("Unacceptable input. Ignoring submission.")
+
 def create_fields():
     i = 1
     list_of_entries = []
@@ -169,10 +178,25 @@ def create_fields():
         setting = "normal"
         if field == "ProvID":
             setting = "readonly"
-        entry = makeentry(editorframe, field, i, state=setting)
+        entry = makeentry(editorframe, field, i, command = submit_entry(i), state=setting)
+        entry.bind("<KeyPress>", entry_changing)
+        entry.bind("<KeyRelease>", entry_changed)
         list_of_entries.append(entry)
         i = i + 1
     return list_of_entries
+
+entry_value = None
+
+def entry_changing(event):
+    global entry_value
+    value = event.widget.get()
+    entry_value = value
+
+def entry_changed(event):
+    global entry_value
+    value = event.widget.get()
+    if value != entry_value:
+        event.widget.config({"background":"yellow"})
 
 list_of_entries = create_fields()
 
@@ -208,6 +232,7 @@ def getprovince(event):
             entry.config(state="normal")
             entry.delete(0,999)
             entry.insert(0,province_data[index])
+            entry.config({"background":"white"})
             if index == 0:
                 entry.config(state="readonly")
         print(province_data)
@@ -236,6 +261,7 @@ def scan(event):
 canvas.bind_all("<ButtonPress-2>", _on_mousewheel_dn)
 canvas.bind_all("<ButtonRelease-2>", _on_mousewheel_up)
 canvas.bind_all("<Motion>",scan)
+canvas.bind_all("<Return>",submit_entry)
 canvas.bind("<ButtonPress-1>",getprovince)
 
 # Replace spaces with semicolons for input to definition.csv province names
