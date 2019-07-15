@@ -150,10 +150,17 @@ def getprovince(event):
     colour = px[cx,cy]
     params = colour
     # Look in definition first to get the province ID from RGB
-    search_query = "SELECT Province_ID FROM definition WHERE R=? AND G=? AND B=?"
+    search_query = "SELECT Province_ID FROM definition WHERE R=? AND G=? AND B=?;"
     db.query(search_query,params)
-    print("province ID is " + str(db.db_fetchone()[0]))
+    province = str(db.db_fetchone()[0])
+    print("province ID is " + province)
+    province_data_query = "SELECT * FROM province_setup WHERE ProvID = " + province + ";"
+    db.query(province_data_query, "")
+    province_data = db.db_fetchone()
+    print(province_data)
 #mouseclick event
 canvas.bind("<ButtonPress-1>",getprovince)
+
+# Replace spaces with semicolons for input to definition.csv province names
 
 root.mainloop()
