@@ -162,6 +162,14 @@ fields = [
 
 frame.pack(fill=BOTH,expand=1)
 
+# If name changes, it also needs to change in the definition.csv
+def change_name(submission):
+    # definition.csv puts semicolons between spaces in names
+    csv_submission = str(submission).replace(" ",";")
+    extra_query = "UPDATE definition SET 'Name'='" + csv_submission + "' WHERE Province_id = "+ list_of_entries[0].get() +";"
+    db.db_commit(extra_query)
+    print("Name changed in definition")
+
 def submit_entry(event, fields):
     try:
         submission = event.widget.get()
@@ -172,6 +180,8 @@ def submit_entry(event, fields):
         # Now find the field that corresponds to the widget
         submission_query = "UPDATE province_setup SET '" + widget_id + "'='" + str(submission) + "' WHERE ProvID = "+ list_of_entries[0].get() +";"
         db.db_commit(submission_query)
+        if widget_id == "NameRef":
+            change_name(submission)
     except Exception as ex:
         print("Unacceptable input. Ignoring submission.")
         print(ex)
