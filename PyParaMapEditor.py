@@ -1,8 +1,6 @@
 import sqlite3, ctypes
 from tkinter import *
 from PIL import Image, ImageTk
-user32 = ctypes.windll.user32
-screensize = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 
 event2canvas = lambda e, c: (c.canvasx(e.x), c.canvasy(e.y))
 
