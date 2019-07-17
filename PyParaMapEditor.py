@@ -162,14 +162,19 @@ fields = [
 
 frame.pack(fill=BOTH,expand=1)
 
-def submit_entry(event):
+def submit_entry(event, fields):
     try:
-        if not str(event).isdigit():
-            submission = event.widget.get()
-            print("Submitting " + submission)
-            event.widget.config({"background":"lime"})
-    except:
+        submission = event.widget.get()
+        print("Submitting " + submission)
+        event.widget.config({"background":"lime"})
+        print(fields)
+        widget_id = fields[list_of_entries.index(event.widget)]
+        # Now find the field that corresponds to the widget
+        submission_query = "UPDATE province_setup SET '" + widget_id + "'='" + str(submission) + "' WHERE ProvID = "+ list_of_entries[0].get() +";"
+        db.db_commit(submission_query)
+    except Exception as ex:
         print("Unacceptable input. Ignoring submission.")
+        print(ex)
 
 def create_fields():
     i = 1
@@ -178,7 +183,7 @@ def create_fields():
         setting = "normal"
         if field == "ProvID":
             setting = "readonly"
-        entry = makeentry(editorframe, field, i, command = submit_entry(i), state=setting)
+        entry = makeentry(editorframe, field, i, state=setting)
         entry.bind("<KeyPress>", entry_changing)
         entry.bind("<KeyRelease>", entry_changed)
         list_of_entries.append(entry)
@@ -261,7 +266,7 @@ def scan(event):
 canvas.bind_all("<ButtonPress-2>", _on_mousewheel_dn)
 canvas.bind_all("<ButtonRelease-2>", _on_mousewheel_up)
 canvas.bind_all("<Motion>",scan)
-canvas.bind_all("<Return>",submit_entry)
+canvas.bind_all("<Return>", lambda event, fieldvar=fields:submit_entry(event, fieldvar))
 canvas.bind("<ButtonPress-1>",getprovince)
 
 # Replace spaces with semicolons for input to definition.csv province names
