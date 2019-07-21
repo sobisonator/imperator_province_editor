@@ -27,6 +27,8 @@ for colour in sea_colours:
 # Ignore white
 sea_provinces.remove((255,255,255))
 
+land_sea_provinces = land_provinces + sea_provinces
+
 total_provinces = len(sea_provinces) + len(land_provinces)
 
 print(str(len(sea_provinces)) + " sea provinces found and " +
@@ -50,8 +52,14 @@ class database_connection(object):
         self.new_sea_provinces = []
         self.new_land_provinces = []
 
+        # A list of free province IDs which can be re-used when provinces are deleted
+        self.free_ids = []
+
     def db_fetchone(self):
         return self.cursor.fetchone()
+
+    def db_fetchall(self):
+        return self.cursor.fetchall()
 
     def query(self,query,params):
         # For functions that don't need to create any new fields
@@ -96,8 +104,32 @@ class database_connection(object):
             return False 
 
 
-    # i = number of records in database.
-    # remove any records that do not match the current list
+    def clear_old_provinces(self, provinces):
+        RGB_query = "SELECT R, G, B FROM definition;"
+        self.query(RGB_query, "")
+        RGBs = self.db_fetchall()
+        for RGB in RGBs:
+            if RGB not in provinces:
+                params = RGB
+                search_query = "SELECT Province_ID FROM definition WHERE R=? AND G=? AND B=?;"
+                self.query(search_query,params)
+                province_id = str(self.db_fetchone()[0])
+                print("Province " + province_id + " no longer exists")
+                self.free_ids.append(province_id)
+                deletion_params = (province_id,)
+                definition_deletion = "DELETE FROM definition WHERE Province_ID = ?;"
+                self.query(definition_deletion,deletion_params)
+                setup_deletion = "DELETE FROM province_setup WHERE ProvID = ?;"
+                self.query(setup_deletion,deletion_params)
+                # Also delete checksum from checksums table
+                checksum_params = (self.province_checksum(RGB),)
+                checksum_deletion = "DELETE FROM province_checksums WHERE province_checksum = ?;"
+                self.query(checksum_deletion,checksum_params)
+        if len(self.free_ids) > 0:
+            self.db_commit("")
+                # Free up this RGB's Province ID
+                # Add it to a list of free Province IDs to be assigned to new provinces
+                # And make sure that other province IDs above it are shifted down
 
     def submit_province(self, province, provtype, new_province,i):
         R = str(province[0])
@@ -111,16 +143,24 @@ class database_connection(object):
             checksum_query = self.checksum_query
             self.query(checksum_query, checksum_params)
             print("Created definition for province " + str(i))
+            if provtype == "landprov":
+                setup_params = (str(i), "roman", "roman_pantheon", "cloth", "1", "1", "1", "1", "40", "0", "landprov"+str(i), "noregion")
+            elif provtype == "seaprov":
+                setup_params = (str(i), "", "", "", "0", "0", "0", "0", "0", "0", "seaprov"+str(i), "")
+            setup_query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Civilization, Barbarian, NameRef, AraRef) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
+            self.query(setup_query, setup_params)
             return True
         else:
             if provtype == "seaprov":
-                self.new_land_provinces.append(province)
+                self.new_sea_provinces.append(province)
                 return False
             elif provtype == "landprov":
-                self.new_sea_provinces.append(province)
+                self.new_land_provinces.append(province)
                 return False
 
     def fill_definition(self):
+        self.clear_old_provinces(land_sea_provinces)
+        self.compensate_for_deleted_provinces()
         i = 1
         while i < total_provinces:
             try:
@@ -140,17 +180,26 @@ class database_connection(object):
                 self.db_commit("")
             break
 
+    def compensate_for_deleted_provinces(self):
+        for free_id in self.free_ids:
+            params = (free_id,)
+            definition_query = "UPDATE definition SET Province_id = (Province_id - 1) WHERE Province_id > ?;"
+            self.query(definition_query,params)
+            province_setup_query = "UPDATE province_setup SET ProvID = (ProvID - 1) WHERE ProvID > ?;"
+            self.query(province_setup_query,params)
+        self.db_commit("")
+
     def default_setup(self):
         i = 1
         while i < total_provinces:
             try:
-                for province in land_provinces:
+                for province in land_provinces + new_land_provinces:
                     params = (str(i), "roman", "roman_pantheon", "cloth", "1", "1", "1", "1", "40", "0", "landprov"+str(i), "noregion")
                     query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Civilization, Barbarian, NameRef, AraRef) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
                     self.query(query, params)
                     print("Created default province setup for land province " + str(i))
                     i = i + 1
-                for province in sea_provinces:
+                for province in sea_provinces + new_sea_provinces:
                     params = (str(i), "", "", "", "0", "0", "0", "0", "0", "0", "seaprov"+str(i), "")
                     query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Civilization, Barbarian, NameRef, AraRef) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
                     self.query(query, params)
@@ -162,7 +211,7 @@ class database_connection(object):
 
 db = database_connection()
 db.fill_definition()
-db.default_setup()
+#db.default_setup()
 
 root = Tk()
 
