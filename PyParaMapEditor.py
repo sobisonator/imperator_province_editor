@@ -42,6 +42,14 @@ class database_connection(object):
         
         self.load_db()
 
+        self.checksum_query = "INSERT OR IGNORE INTO province_checksums(province_checksum) VALUES (:checksum)"
+
+        self.definition_query = "INSERT OR IGNORE INTO definition(Province_id, R, G, B, Name, x) VALUES (?,?,?,?,?,?)"
+
+        # A list to hold new provinces with checksums not existing in the current save
+        self.new_sea_provinces = []
+        self.new_land_provinces = []
+
     def db_fetchone(self):
         return self.cursor.fetchone()
 
@@ -69,27 +77,64 @@ class database_connection(object):
         for schema_command in individual_schema_contents:
             self.db_commit(schema_command + ";")
 
+    def province_checksum(self,province):
+        R = province[0]**2 + 1
+        G = province[1]**3 + 2
+        B = province[2]**4 + 3
+        province_checksum = R + G + B
+        return str(province_checksum)
+
+    def checksum_search(self, province):
+        checksum = self.province_checksum(province)
+        search_checksum_query = "SELECT * FROM province_checksums WHERE province_checksum = " + checksum + ";"
+        self.query(search_checksum_query,"")
+        if self.db_fetchone() != None:
+            print("Checksum " + checksum + " verified")
+            return True
+        else:
+            print("No previously existing province with checksum " + checksum)
+            return False 
+
+
+    # i = number of records in database.
+    # remove any records that do not match the current list
+
+    def submit_province(self, province, provtype, new_province,i):
+        R = str(province[0])
+        G = str(province[1])
+        B = str(province[2])
+        if self.checksum_search(province) == True or new_province == True:
+            definition_params = (str(i), R, G, B, provtype+str(i),"x")
+            definition_query = self.definition_query
+            self.query(definition_query, definition_params)
+            checksum_params = {"checksum":self.province_checksum(province)}
+            checksum_query = self.checksum_query
+            self.query(checksum_query, checksum_params)
+            print("Created definition for province " + str(i))
+            return True
+        else:
+            if provtype == "seaprov":
+                self.new_land_provinces.append(province)
+                return False
+            elif provtype == "landprov":
+                self.new_sea_provinces.append(province)
+                return False
+
     def fill_definition(self):
         i = 1
         while i < total_provinces:
             try:
                 for province in land_provinces:
-                    R = str(province[0])
-                    G = str(province[1])
-                    B = str(province[2])
-                    params = (str(i), R, G, B, "landprov"+str(i),"x")
-                    query = "INSERT OR IGNORE INTO definition(Province_id, R, G, B, Name, x) VALUES (?,?,?,?,?,?)"
-                    self.query(query, params)
-                    print("Created definition for province " + str(i))
-                    i = i+1
+                    if self.submit_province(province, "landprov", False,i) == True:
+                        i = i+1
                 for province in sea_provinces:
-                    R = str(province[0])
-                    G = str(province[1])
-                    B = str(province[2])
-                    params = (str(i), R, G, B, "seaprov"+str(i),"x")
-                    query = "INSERT OR IGNORE INTO definition(Province_id, R, G, B, Name, x) VALUES (?,?,?,?,?,?)"
-                    self.query(query, params)
-                    print("Created definition for province " + str(i))
+                    if self.submit_province(province, "seaprov", False,i) == True:
+                        i = i+1
+                for province in self.new_land_provinces:
+                    self.submit_province(province, "landprov", True,i)
+                    i = i+1
+                for province in self.new_sea_provinces:
+                    self.submit_province(province, "seaprov", True,i)
                     i = i+1
             finally:
                 self.db_commit("")
