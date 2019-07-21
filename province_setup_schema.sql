@@ -21,3 +21,7 @@ CREATE TABLE IF NOT EXISTS definition (
 	Name VARCHAR,
 	x VARCHAR
 );
+
+CREATE TABLE IF NOT EXISTS province_checksums (
+	province_checksum INTEGER PRIMARY KEY
+);
