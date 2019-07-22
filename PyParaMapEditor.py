@@ -1,4 +1,5 @@
 import sqlite3, ctypes
+from tkinter import filedialog
 from tkinter import *
 from PIL import Image, ImageTk
 
@@ -35,10 +36,15 @@ print(str(len(sea_provinces)) + " sea provinces found and " +
       str(len(land_provinces)) + " land provinces found.")
 print("Total provinces = " + str(total_provinces))
 
+fileselect = Tk()
+fileselect.withdraw()
+map_file = fileselect.filename = filedialog.asksaveasfilename(initialdir = "./", title="Select map editor save file",filetypes = (("all files",""),("all files","*")))
+fileselect.destroy()
+
 # Database connection class
 class database_connection(object):
     def __init__(self):
-        db_path = input("Input a map name:")
+        db_path = map_file
         self.connection = sqlite3.connect(db_path)
         self.cursor = self.connection.cursor()
         
