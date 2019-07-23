@@ -1,4 +1,4 @@
-import sqlite3, ctypes
+import sqlite3
 from tkinter import filedialog
 from tkinter import *
 from PIL import Image, ImageTk
@@ -92,9 +92,9 @@ class database_connection(object):
             self.db_commit(schema_command + ";")
 
     def province_checksum(self,province):
-        R = province[0]**2 + 1
-        G = province[1]**3 + 2
-        B = province[2]**4 + 3
+        R = province[0]
+        G = province[1]*1000
+        B = province[2]*1000000
         province_checksum = R + G + B
         return str(province_checksum)
 
@@ -217,7 +217,6 @@ class database_connection(object):
 
 db = database_connection()
 db.fill_definition()
-#db.default_setup()
 
 root = Tk()
 
@@ -349,6 +348,10 @@ def getprovince(event):
             if index == 0:
                 entry.config(state="readonly")
         print(province_data)
+
+# Export to CSV
+# definition.csv has 0 in first row.
+# header rows need to be commented out
 
 mousewheel = 0
 
