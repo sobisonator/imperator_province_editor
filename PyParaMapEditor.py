@@ -34,7 +34,7 @@ total_provinces = len(sea_provinces) + len(land_provinces)
 
 print(str(len(sea_provinces)) + " sea provinces found and " +
       str(len(land_provinces)) + " land provinces found.")
-print("Total provinces = " + str(total_provinces))
+print("Total provinces in land sea (may include overlap!) = " + str(total_provinces))
 
 fileselect = Tk()
 fileselect.withdraw()
@@ -98,17 +98,6 @@ class database_connection(object):
         province_checksum = R + G + B
         return str(province_checksum)
 
-    def checksum_search(self, province):
-        checksum = self.province_checksum(province)
-        search_checksum_query = "SELECT * FROM province_checksums WHERE province_checksum = " + checksum + ";"
-        self.query(search_checksum_query,"")
-        if self.db_fetchone() != None:
-            print("Checksum " + checksum + " verified")
-            return True
-        else:
-            print("No previously existing province with checksum " + checksum)
-            return False 
-
 
     def clear_old_provinces(self, provinces):
         RGB_query = "SELECT R, G, B FROM definition;"
@@ -137,50 +126,69 @@ class database_connection(object):
                 # Add it to a list of free Province IDs to be assigned to new provinces
                 # And make sure that other province IDs above it are shifted down
 
+    def checksum_search(self, province):
+        checksum = self.province_checksum(province)
+        search_checksum_query = "SELECT * FROM province_checksums WHERE province_checksum = " + checksum + ";"
+        self.query(search_checksum_query,"")
+        if self.db_fetchone() != None:
+            print("Checksum " + checksum + " verified")
+            return True
+        else:
+            print("No previously existing province with checksum " + checksum)
+            return False 
+
     def submit_province(self, province, provtype, new_province,i):
         R = str(province[0])
         G = str(province[1])
         B = str(province[2])
-        if self.checksum_search(province) == True or new_province == True:
-            definition_params = (str(i), R, G, B, provtype+str(i),"x")
-            definition_query = self.definition_query
-            self.query(definition_query, definition_params)
-            checksum_params = {"checksum":self.province_checksum(province)}
-            checksum_query = self.checksum_query
-            self.query(checksum_query, checksum_params)
-            print("Created definition for province " + str(i))
-            if provtype == "landprov":
-                setup_params = (str(i), "roman", "roman_pantheon", "cloth", "1", "1", "1", "1", "40", "0", "landprov"+str(i), "noregion")
-            elif provtype == "seaprov":
-                setup_params = (str(i), "", "", "", "0", "0", "0", "0", "0", "0", "seaprov"+str(i), "")
-            setup_query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Civilization, Barbarian, NameRef, AraRef) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
-            self.query(setup_query, setup_params)
-            return True
-        else:
-            if provtype == "seaprov":
-                self.new_sea_provinces.append(province)
-                return False
-            elif provtype == "landprov":
-                self.new_land_provinces.append(province)
-                return False
+        # If the checksum does not exist, create the province
+        if self.checksum_search(province) == False:
+            if new_province == True:
+                definition_params = (str(i), R, G, B, provtype+str(i),"x")
+                definition_query = self.definition_query
+                self.query(definition_query, definition_params)
+                checksum_params = {"checksum":self.province_checksum(province)}
+                checksum_query = self.checksum_query
+                self.query(checksum_query, checksum_params)
+                print("Created definition for province " + str(i))
+                if provtype == "landprov":
+                    setup_params = (str(i), "roman", "roman_pantheon", "cloth", "1", "1", "1", "1", "40", "0", "landprov"+str(i), "noregion")
+                elif provtype == "seaprov":
+                    setup_params = (str(i), "", "", "", "0", "0", "0", "0", "0", "0", "seaprov"+str(i), "")
+                setup_query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Civilization, Barbarian, NameRef, AraRef) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
+                self.query(setup_query, setup_params)
+                return True
+            elif new_province == False:
+                if provtype == "seaprov":
+                    self.new_sea_provinces.append(province)
+                    return False
+                elif provtype == "landprov":
+                    self.new_land_provinces.append(province)
+                    return False
 
     def fill_definition(self):
         self.clear_old_provinces(land_sea_provinces)
         self.compensate_for_deleted_provinces()
-        i = 1
+        self.query("SELECT max(rowid) from definition;","")
+        num_defined_provinces = self.db_fetchone()[0]
+        if num_defined_provinces != None:
+            i = num_defined_provinces + 1
+            print("Found " + str(i - 1) + " provinces already defined.")
+        else:
+            i = 1
         while i < total_provinces:
             try:
                 for province in land_provinces:
-                    if self.submit_province(province, "landprov", False,i) == True:
+                    if self.submit_province(province, "landprov", True,i) == True:
                         i = i+1
                 for province in sea_provinces:
-                    if self.submit_province(province, "seaprov", False,i) == True:
+                    if self.submit_province(province, "seaprov", True,i) == True:
                         i = i+1
                 for province in self.new_land_provinces:
-                    self.submit_province(province, "landprov", True,i)
+                    self.submit_province(province, "landprov", False,i)
                     i = i+1
                 for province in self.new_sea_provinces:
-                    self.submit_province(province, "seaprov", True,i)
+                    self.submit_province(province, "seaprov", False,i)
                     i = i+1
             finally:
                 self.db_commit("")
@@ -352,6 +360,12 @@ def getprovince(event):
 # Export to CSV
 # definition.csv has 0 in first row.
 # header rows need to be commented out
+# ;;;;;;;;;;;;;;;;; after each x
+
+# province_setup.csv
+# Use commas to separate fields
+# Use semicolons to separate headers
+# ,,,,,,,,,,,, after AraRef
 
 mousewheel = 0
 
