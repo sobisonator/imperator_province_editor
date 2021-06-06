@@ -63,7 +63,7 @@ class database_connection(object):
         self.checksum_query = "INSERT OR IGNORE INTO province_checksums(province_checksum) VALUES (:checksum)"
 
         self.definition_query = "INSERT OR IGNORE INTO definition(Province_id, R, G, B, Name, x) VALUES (?,?,?,?,?,?)"
-        self.setup_query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, LowerStrata, MiddleStrata, Proletariat, Slaves, Tribesmen, UpperStrata, Civilization, SettlementRank, NameRef, AraRef, isChanged) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+        self.setup_query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Nobles, Civilization, SettlementRank, NameRef, AraRef, isChanged) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
         # A list to hold new provinces with checksums not existing in the current save
         self.new_sea_provinces = []
@@ -168,9 +168,9 @@ class database_connection(object):
                 self.query(checksum_query, checksum_params)
                 print("Created definition for province " + str(i))
                 if provtype == "landprov":
-                    setup_params = (str(i), "roman", "roman_pantheon", "cloth", "1", "1", "1", "1", "40", "0", "landprov"+str(i), "noregion")
+                    setup_params = (str(i), "roman", "roman_pantheon", "cloth", "0", "0", "0", "0","0", "40", "0", "landprov"+str(i), "noregion", "plains", "FALSE")
                 elif provtype == "seaprov":
-                    setup_params = (str(i), "", "", "", "0", "0", "0", "0", "0", "0", "seaprov"+str(i), "")
+                    setup_params = (str(i), "", "", "", "0", "0", "0", "0", "0", "0", "0", "seaprov"+str(i), "", "ocean", "False")
                 self.query(self.setup_query, setup_params)
                 return True
             elif new_province == False:
@@ -200,7 +200,7 @@ class database_connection(object):
                 rows[i] = list(row)
             for row in rows:
                 print(row)
-                self.query(self.setup_query, (row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15], "FALSE"))
+                self.query(self.setup_query, (row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], "FALSE"))
             self.connection.commit()
 
 
@@ -245,15 +245,21 @@ class database_connection(object):
         i = 1
         while i < total_provinces:
             try:
-                for province in land_provinces + new_land_provinces:
-                    params = (str(i), "roman", "roman_pantheon", "cloth", "1", "1", "1", "1", "40", "0", "landprov"+str(i), "noregion")
-                    query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Civilization, Barbarian, NameRef, AraRef) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
+                for province in land_provinces + self.new_land_provinces:
+                    province_name_query = "SELECT Name FROM definition WHERE Province_id = " + str(i) + ";"
+                    db.query(province_name_query, "")
+                    province_name = db.db_fetchone()
+                    try:
+                        params = (str(i), "roman", "roman_pantheon", "cloth", "0", "0", "0", "0", "0", "40", "0", str(province_name[0]), "noregion", "plains", "FALSE")
+                    except:
+                        params = (str(i), "roman", "roman_pantheon", "cloth", "0", "0", "0", "0", "0", "40", "0", "PROV" + str(i), "noregion", "plains", "FALSE")
+                    query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Nobles, Civilization, SettlementRank, NameRef, AraRef, Terrain, isChanged) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
                     self.query(query, params)
                     print("Created default province setup for land province " + str(i))
                     i = i + 1
-                for province in sea_provinces + new_sea_provinces:
-                    params = (str(i), "", "", "", "0", "0", "0", "0", "0", "0", "seaprov"+str(i), "")
-                    query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Civilization, Barbarian, NameRef, AraRef) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
+                for province in sea_provinces + self.new_sea_provinces:
+                    params = (str(i), "", "", "", "0", "0", "0", "0", "0", "0", "0", "seaprov"+str(i), "", "ocean", "FALSE")
+                    query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Nobles, Civilization, SettlementRank, NameRef, AraRef, Terrain, isChanged) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
                     self.query(query, params)
                     print("Created default province setup for sea province " + str(i))
                     i = i + 1
@@ -279,6 +285,8 @@ else:
     db.fill_definition()
 if province_setup_csv:
     db.import_setup()
+else:
+    db.default_setup()
 
 root = Tk()
 
@@ -317,12 +325,9 @@ fields = [
     "TradeGoods",
     "Citizens",
     "Freedmen",
-    "LowerStrata",
-    "MiddleStrata",
-    "Proletariat",
     "Slaves",
     "Tribesmen",
-    "UpperStrata",
+    "Nobles",
     "Industrialisation",
     "SettlementRank",
     "NameRef",
@@ -402,7 +407,9 @@ def getprovince(event):
     print ("click at (%d, %d) / (%d, %d)" % (event.x,event.y,cx,cy))
     colour = px[cx,cy]
     params = colour
+    print(params)
     # Clear the canvas and draw a selector where you last clicked
+    canvas.delete("all")
     canvas.create_image(0, 0, image=canvas_img, anchor="nw")
     canvas.create_image((cx, cy), image=selector_img)
     # Look in definition first to get the province ID from RGB
