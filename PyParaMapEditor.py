@@ -1,4 +1,4 @@
-import sqlite3
+import sqlite3, csv
 from tkinter import filedialog
 from tkinter import *
 from PIL import Image, ImageTk
@@ -7,8 +7,17 @@ event2canvas = lambda e, c: (c.canvasx(e.x), c.canvasy(e.y))
 
 im_land = Image.open('land_input.bmp','r')
 im_sea = Image.open('sea_input.bmp','r')
+im_selector = Image.open("selector.gif", "r")
+try:
+    province_setup_csv = open('province_setup.csv', 'r',encoding='UTF-8')
+except:
+    province_setup_csv = False
+try:
+    definition_csv = open('definition.csv', 'r')
+except:
+    definition_csv = False
 
-land_colours = im_land.getcolors(maxcolors=5000)
+land_colours = im_land.getcolors(maxcolors=100000)
 
 land_provinces = []
 
@@ -19,7 +28,7 @@ land_provinces.remove((255,255,255))
 
 # Sea provinces
 
-sea_colours = im_sea.getcolors(maxcolors=5000)
+sea_colours = im_sea.getcolors(maxcolors=100000)
 
 sea_provinces = []
 
@@ -41,6 +50,7 @@ fileselect.withdraw()
 map_file = fileselect.filename = filedialog.asksaveasfilename(initialdir = "./", title="Select map editor save file",filetypes = (("all files",""),("all files","*")))
 fileselect.destroy()
 
+
 # Database connection class
 class database_connection(object):
     def __init__(self):
@@ -53,6 +63,7 @@ class database_connection(object):
         self.checksum_query = "INSERT OR IGNORE INTO province_checksums(province_checksum) VALUES (:checksum)"
 
         self.definition_query = "INSERT OR IGNORE INTO definition(Province_id, R, G, B, Name, x) VALUES (?,?,?,?,?,?)"
+        self.setup_query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, LowerStrata, MiddleStrata, Proletariat, Slaves, Tribesmen, UpperStrata, Civilization, SettlementRank, NameRef, AraRef, isChanged) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
         # A list to hold new provinces with checksums not existing in the current save
         self.new_sea_provinces = []
@@ -70,6 +81,11 @@ class database_connection(object):
     def query(self,query,params):
         # For functions that don't need to create any new fields
         return self.cursor.execute(query,params)
+
+    def commit_many(self,query,params):
+        # For functions that create many new fields
+        self.cursor.executemany(query, params)
+        self.connection.commit()
 
     def db_commit(self,query):
         # For functions that need to create a new field
@@ -155,8 +171,7 @@ class database_connection(object):
                     setup_params = (str(i), "roman", "roman_pantheon", "cloth", "1", "1", "1", "1", "40", "0", "landprov"+str(i), "noregion")
                 elif provtype == "seaprov":
                     setup_params = (str(i), "", "", "", "0", "0", "0", "0", "0", "0", "seaprov"+str(i), "")
-                setup_query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Civilization, Barbarian, NameRef, AraRef) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
-                self.query(setup_query, setup_params)
+                self.query(self.setup_query, setup_params)
                 return True
             elif new_province == False:
                 if provtype == "seaprov":
@@ -165,6 +180,29 @@ class database_connection(object):
                 elif provtype == "landprov":
                     self.new_land_provinces.append(province)
                     return False
+
+    def import_definition(self):
+        # Import definition
+        if definition_csv:
+            rows = list(csv.reader(definition_csv, delimiter=";"))
+            for i, row in enumerate(rows):
+                rows[i] = list(row)
+            for row in rows:
+                print(row)
+                self.query(self.definition_query, (row[0], row[1], row[2], row[3], row[4], row[5]))
+            self.connection.commit()
+
+    def import_setup(self):
+        # Import setup
+        if province_setup_csv:
+            rows = list(csv.reader(province_setup_csv, delimiter=";"))
+            for i, row in enumerate(rows):
+                rows[i] = list(row)
+            for row in rows:
+                print(row)
+                self.query(self.setup_query, (row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15], "FALSE"))
+            self.connection.commit()
+
 
     def fill_definition(self):
         self.clear_old_provinces(land_sea_provinces)
@@ -223,8 +261,24 @@ class database_connection(object):
                 self.db_commit("")
             break
 
+    def export_to_csv(self):
+        print("Exporting to CSV")
+        select_setup = "SELECT * FROM province_setup;"
+        self.query(select_setup, "")
+        with open("pyParaMapEditor_OUTPUT.csv","w", newline="",encoding="UTF-8") as csv_file:
+            csv_writer = csv.writer(csv_file)
+            csv_writer.writerow([i[0] for i in self.cursor.description])
+            for row in self.cursor:
+                print(row)
+                csv_writer.writerow(row)
+
 db = database_connection()
-db.fill_definition()
+if definition_csv:
+    db.import_definition()
+else:
+    db.fill_definition()
+if province_setup_csv:
+    db.import_setup()
 
 root = Tk()
 
@@ -244,6 +298,12 @@ yscroll.config(command=canvas.yview)
 editorframe = Frame(frame, bd=2, relief=SUNKEN, padx=110)
 editorframe.grid(row=0, column=2)
 
+def export_to_csv():
+    db.export_to_csv()
+
+export_button = Button(frame, command= lambda: export_to_csv(), text="Export to CSV", bd=4, height=2, padx=2, bg="deep sky blue")
+export_button.grid(row=1, column=2)
+
 def makeentry(parent, caption, rownum, **options):
     Label(parent, text=caption, pady=10).grid(row = rownum, column = 0)
     entry = Entry(parent, width=16, font=("Arial 18"), **options)
@@ -257,10 +317,14 @@ fields = [
     "TradeGoods",
     "Citizens",
     "Freedmen",
+    "LowerStrata",
+    "MiddleStrata",
+    "Proletariat",
     "Slaves",
     "Tribesmen",
-    "Civilization",
-    "Barbarian",
+    "UpperStrata",
+    "Industrialisation",
+    "SettlementRank",
     "NameRef",
     "AraRef"
 ]
@@ -280,10 +344,10 @@ def submit_entry(event, fields):
         submission = event.widget.get()
         print("Submitting " + submission)
         event.widget.config({"background":"lime"})
-        print(fields)
         widget_id = fields[list_of_entries.index(event.widget)]
         # Now find the field that corresponds to the widget
-        submission_query = "UPDATE province_setup SET '" + widget_id + "'='" + str(submission) + "' WHERE ProvID = "+ list_of_entries[0].get() +";"
+        submission_query = "UPDATE province_setup SET '" + widget_id + "'='" + str(submission) + "', 'isChanged' = 'TRUE' WHERE ProvID = "+ list_of_entries[0].get() +";"
+        print(submission_query)
         db.db_commit(submission_query)
         if widget_id == "NameRef":
             change_name(submission)
@@ -321,13 +385,14 @@ def entry_changed(event):
 list_of_entries = create_fields()
 
 #adding the image
-img = ImageTk.PhotoImage(file='main_input.bmp', size=(1024,768))
-pxdata = Image.open('main_input.bmp','r')
+canvas_img = ImageTk.PhotoImage(file='main_input.png', size=(1024,768))
+pxdata = Image.open('main_input.png','r')
 px = pxdata.load()
-canvas.create_image(0,0,image=img,anchor="nw")
+canvas.create_image(0, 0, image=canvas_img, anchor="nw")
 canvas.config(scrollregion=canvas.bbox(ALL))
 
 prevprovince = None
+selector_img = ImageTk.PhotoImage(file="selector.gif", master=root)
 
 #function to be called when mouse is clicked
 def getprovince(event):
@@ -337,6 +402,9 @@ def getprovince(event):
     print ("click at (%d, %d) / (%d, %d)" % (event.x,event.y,cx,cy))
     colour = px[cx,cy]
     params = colour
+    # Clear the canvas and draw a selector where you last clicked
+    canvas.create_image(0, 0, image=canvas_img, anchor="nw")
+    canvas.create_image((cx, cy), image=selector_img)
     # Look in definition first to get the province ID from RGB
     search_query = "SELECT Province_ID FROM definition WHERE R=? AND G=? AND B=?;"
     db.query(search_query,params)
@@ -383,16 +451,17 @@ def _on_mousewheel_up(event):
 
 def scan(event):
     global mousewheel
+    global scan_anchor
     if mousewheel == 1:
         print(event)
-        canvas.scan_dragto(event.x,event.y)
+        canvas.scan_dragto(event.x,event.y, gain = 1)
     
 #mouseclick event
 canvas.bind_all("<ButtonPress-2>", _on_mousewheel_dn)
 canvas.bind_all("<ButtonRelease-2>", _on_mousewheel_up)
 canvas.bind_all("<Motion>",scan)
 canvas.bind_all("<Return>", lambda event, fieldvar=fields:submit_entry(event, fieldvar))
-canvas.bind("<ButtonPress-1>",getprovince)
+canvas.bind("<ButtonPress-1>", getprovince)
 
 # Replace spaces with semicolons for input to definition.csv province names
 
