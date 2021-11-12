@@ -15,10 +15,6 @@ Pre-prep (I don't have Python already):
 		i) Enter the following command in your command line:
 			pip install pandas gspread Pillow
 		ii) Launch the script by double clicking it.
-	c) Command line in directory
-		i) Open command line in the directory's location
-		ii) Enter the following command in your command line:
-			pip install -r requirements.txt
 
 2. Preparing data (if you are using imp19c, these files should all be there already and you can skip this step!)
 	a) All files below simply need to be present in the setup editor's
@@ -26,6 +22,9 @@ Pre-prep (I don't have Python already):
 		your province map, (main_input.BMP)
 		a map of your land provinces with sea provinces coloured white, (land_input.BMP)
 		and a map of your sea provinces with land provinces coloured white. (sea_input.BMP)
+		NOTE: There are a couple of ways you can go about creating the land and sea images:
+			option i) If you have a corresponding heightmap, all of your land should be of a grayscale value above that of the sea. Find the grayscale value at which land begins and select all pixels of this colour and higher value in your advanced image editor of choice (GIMP, paint.net, etc.) You can then use this as a "cutout" layer copied into your provinces map image to select only the sea and only the land provinces and save the images relatedly.
+			option ii) If you don't have a heightmap, you can simply paint over in white with a brush all areas that should be excluded from the respective image coloured in white. This won't be as accurate unless you have a very deft hand! But you can always go back in afterwards and correct the errors manually.
 	 All of these images must be of the same dimensions.
 	c) You may optionally load in an existing definition.csv and existing province_setup.csv, which will be loaded by the setup editor. 
 	d) Credentials json file which should be selected when prompted by the program. It should be named "imp19c_credentials.json"
