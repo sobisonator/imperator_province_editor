@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS province_setup (
 	Freedmen INTEGER,
 	Slaves INTEGER,
 	Tribesmen INTEGER,
+	Nobles INTEGER,
 	Civilization INTEGER,
 	Barbarian BOOLEAN,
 	NameRef VARCHAR,
