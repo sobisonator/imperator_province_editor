@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS province_setup (
 	Tribesmen INTEGER,
 	Nobles INTEGER,
 	Civilization INTEGER,
+	SettlementRank VARCHAR,
 	Barbarian BOOLEAN,
 	NameRef VARCHAR,
 	AraRef VARCHAR
