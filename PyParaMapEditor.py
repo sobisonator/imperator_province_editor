@@ -63,7 +63,7 @@ class database_connection(object):
         self.checksum_query = "INSERT OR IGNORE INTO province_checksums(province_checksum) VALUES (:checksum)"
 
         self.definition_query = "INSERT OR IGNORE INTO definition(Province_id, R, G, B, Name, x) VALUES (?,?,?,?,?,?)"
-        self.setup_query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Nobles, Civilization, SettlementRank, NameRef, AraRef, isChanged) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"
+        self.setup_query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Nobles, Civilization, SettlementRank, NameRef, AraRef, isChanged) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 
         # A list to hold new provinces with checksums not existing in the current save
         self.new_sea_provinces = []
