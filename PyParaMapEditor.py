@@ -253,13 +253,13 @@ class database_connection(object):
                         params = (str(i), "roman", "roman_pantheon", "cloth", "0", "0", "0", "0", "0", "40", "settlement", "0", str(province_name[0]), "noregion", "plains", "FALSE")
                     except:
                         params = (str(i), "roman", "roman_pantheon", "cloth", "0", "0", "0", "0", "0", "40", "settlement", "0", "PROV" + str(i), "noregion", "plains", "FALSE")
-                    query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Nobles, Civilization, SettlementRank, NameRef, AraRef, Terrain, isChanged) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+                    query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Nobles, Civilization, SettlementRank, NameRef, AraRef, Terrain, isChanged) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
                     self.query(query, params)
                     print("Created default province setup for land province " + str(i))
                     i = i + 1
                 for province in sea_provinces + self.new_sea_provinces:
                     params = (str(i), "", "", "", "0", "0", "0", "0", "0", "0", "", "0", "seaprov"+str(i), "", "ocean", "FALSE")
-                    query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Nobles, Civilization, SettlementRank, NameRef, AraRef, Terrain, isChanged) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+                    query = "INSERT OR IGNORE INTO province_setup(ProvID, Culture, Religion, TradeGoods, Citizens, Freedmen, Slaves, Tribesmen, Nobles, Civilization, SettlementRank, NameRef, AraRef, Terrain, isChanged) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
                     self.query(query, params)
                     print("Created default province setup for sea province " + str(i))
                     i = i + 1
