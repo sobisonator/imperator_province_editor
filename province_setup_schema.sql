@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS province_setup (
 	Barbarian BOOLEAN,
 	NameRef VARCHAR,
 	AraRef VARCHAR,
+	Terrain VARCHAR,
 	isChanged BOOLEAN
 );
 
