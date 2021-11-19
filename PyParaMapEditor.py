@@ -168,9 +168,9 @@ class database_connection(object):
                 self.query(checksum_query, checksum_params)
                 print("Created definition for province " + str(i))
                 if provtype == "landprov":
-                    setup_params = (str(i), "roman", "roman_pantheon", "cloth", "0", "0", "0", "0","0", "40", "0", "landprov"+str(i), "noregion", "plains", "FALSE")
+                    setup_params = (str(i), "roman", "roman_pantheon", "cloth", "0", "0", "0", "0","0", "40", "settlement", "0", "landprov"+str(i), "noregion", "plains", "FALSE")
                 elif provtype == "seaprov":
-                    setup_params = (str(i), "", "", "", "0", "0", "0", "0", "0", "0", "0", "seaprov"+str(i), "", "ocean", "False")
+                    setup_params = (str(i), "", "", "", "0", "0", "0", "0", "0", "0", "0", "seaprov"+str(i), "", "", "ocean", "FALSE")
                 self.query(self.setup_query, setup_params)
                 return True
             elif new_province == False:
